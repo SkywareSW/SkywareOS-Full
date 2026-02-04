@@ -366,10 +366,10 @@ sudo cp assets/skywareos.svg \
   /usr/share/plasma/look-and-feel/org.skywareos.desktop/contents/splash/logo.svg
 
 # Set Plasma splash automatically
-kwriteconfig5 --file kscreenlockerrc --group Greeter --key Theme org.skywareos.desktop
-kwriteconfig5 --file plasmarc --group Theme --key name org.skywareos.desktop
+kwriteconfig6 --file kscreenlockerrc --group Greeter --key Theme org.skywareos.desktop
+kwriteconfig6 --file plasmarc --group Theme --key name org.skywareos.desktop
 
-echo "→ SkywareOS branding applied (KDE + SDDM + splash)"
+echo "→ SkywareOS Finalization Complete"
 
 
 # -----------------------------
@@ -377,5 +377,6 @@ echo "→ SkywareOS branding applied (KDE + SDDM + splash)"
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
