@@ -13,21 +13,26 @@ sudo pacman -Syu --noconfirm \
 # GPU Driver Selection
 # -----------------------------
 echo "Select your GPU driver:"
-echo "1) NVIDIA"
-echo "2) AMD"
-echo "3) Intel"
-read -rp "Enter choice (1/2/3): " gpu_choice
+echo "1) NVIDIA (Modern)"
+echo "2) NVIDIA"
+echo "3) AMD"
+echo "4) Intel"
+read -rp "Enter choice (1/2/3/4): " gpu_choice
 
 case "$gpu_choice" in
     1)
+        echo "Installing Modern NVIDIA drivers..."
+        sudo pacman -S --noconfirm nvidia-open nvidia-utils nvidia-settings
+    
+    2)
         echo "Installing NVIDIA drivers (DKMS)..."
         sudo pacman -S --noconfirm nvidia-dkms nvidia-utils nvidia-settings
         ;;
-    2)
+    3)
         echo "Installing AMD drivers..."
         sudo pacman -S --noconfirm xf86-video-amdgpu mesa
         ;;
-    3)
+    4)
         echo "Installing Intel drivers..."
         sudo pacman -S --noconfirm xf86-video-intel mesa
         ;;
@@ -58,8 +63,7 @@ case "$de_choice" in
         ;;
     3)
         echo "Installing Hyprland..."
-        sudo pacman -S --noconfirm hyprland xorg-xwayland wayland wlroots alacritty kitty swaybg mako swayidle mesa mesa-vdpau pipewire pipewire-pulse
-        echo "Running remote Hyprland dotfiles setup script..."
+        sudo pacman -S --noconfirm hyprland
         bash <(curl -s https://ii.clsty.link/get)
         ;;
     *)
@@ -377,6 +381,7 @@ echo "→ SkywareOS Finalization Complete"
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
