@@ -279,7 +279,7 @@ NAME="SkywareOS"
 PRETTY_NAME="SkywareOS"
 ID=skywareos
 ID_LIKE=arch
-VERSION="rolling"
+VERSION=" "
 VERSION_ID=rolling
 HOME_URL="https://github.com/SkywareSW"
 LOGO=skywareos
@@ -377,6 +377,7 @@ echo "→ SkywareOS Finalization Complete"
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
