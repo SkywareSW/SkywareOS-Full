@@ -48,7 +48,7 @@ read -rp "Enter choice (1/2/3): " de_choice
 case "$de_choice" in
     1)
         echo "Installing KDE Plasma..."
-        sudo pacman -S --noconfirm plasma plasma-wayland-session kde-applications sddm
+        sudo pacman -S --noconfirm plasma kde-applications sddm
         sudo systemctl enable sddm
         ;;
     2)
@@ -282,3 +282,4 @@ echo "→ Starship zsh prompt enabled"
 echo "→ Alacritty + Kitty dark-gray themed"
 echo "→ Flatpak apps installed"
 echo "Log out or reboot required"
+
