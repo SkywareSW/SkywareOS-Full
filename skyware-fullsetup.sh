@@ -518,54 +518,6 @@ case "$1" in
     setup)
         shift
         case "$1" in
-            hyprland-end4)
-                header
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo "MAKE SURE YOU KNOW WHAT YOU'RE DOING, END-4 ON THIS SETUP IS BUGGY AND CAN CAUSE ISSUES/(RARELY) BREAK YOUR INSTALL."
-                echo " 1) alright nevermind"
-                echo " 2) just let me do what i want(RISKY)"
-                shift
-                case "$1" in
-                    1)
-                        echo "Setup Cancelled."
-                        ;;
-                    2)
-                        echo -e "${YELLOW}→ Installing Hyprland environment...${RESET}"
-                        log "Hyprland(end-4) setup started"
-
-                        sudo pacman -S --noconfirm \
-                        hyprland \
-                        xdg-desktop-portal-hyprland \
-                        waybar \
-                        wofi \
-                        kitty \
-                        grim \
-                        slurp \
-                        wl-clipboard \
-                        polkit-kde-agent \
-                        pipewire wireplumber \
-                        network-manager-applet \
-                        thunar
-
-                        echo -e "${GREEN}✔ Base Hyprland packages installed${RESET}"
-
-                        echo -e "${YELLOW}→ Running Skyware Hyprland dotfiles setup(end-4)...${RESET}"
-                        bash <(curl -s https://ii.clsty.link/get)
-
-                        log "Hyprland setup completed"
-                        echo -e "${GREEN}✔ Hyprland setup complete${RESET}"
-                        ;;
             hyprland)
                 header
                 echo -e "${YELLOW}→ Installing Hyprland environment...${RESET}"
@@ -630,8 +582,6 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
-
-
 
 
 
