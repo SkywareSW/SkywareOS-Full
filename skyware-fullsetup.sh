@@ -48,7 +48,6 @@ esac
 echo "Select your Desktop Environment / Compositor:"
 echo "1) KDE Plasma"
 echo "2) GNOME"
-echo "3) Hyprland"
 read -rp "Enter choice (1/2/3): " de_choice
 
 case "$de_choice" in
@@ -61,11 +60,6 @@ case "$de_choice" in
         echo "Installing GNOME..."
         sudo pacman -S --noconfirm gnome gnome-extra gdm
         sudo systemctl enable gdm
-        ;;
-    3)
-        echo "Installing Hyprland..."
-        sudo pacman -S --noconfirm hyprland
-        bash <(curl -s https://ii.clsty.link/get)
         ;;
     *)
         echo "Invalid choice, skipping DE installation."
@@ -376,12 +370,217 @@ kwriteconfig6 --file plasmarc --group Theme --key name org.skywareos.desktop
 
 echo "→ SkywareOS Finalization Complete"
 
+echo "== Creating SkywareOS distro-grade package manager (ware) =="
+
+sudo tee /usr/local/bin/ware > /dev/null << 'EOF'
+#!/bin/bash
+
+LOGFILE="/var/log/ware.log"
+JSON_MODE=false
+
+GREEN="\e[32m"
+RED="\e[31m"
+BLUE="\e[34m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+RESET="\e[0m"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | sudo tee -a "$LOGFILE" >/dev/null
+}
+
+header() {
+    [ "$JSON_MODE" = true ] && return
+    echo -e "${BLUE}SkywareOS Package Manager (ware)${RESET}"
+    echo ""
+}
+
+spinner() {
+    pid=$!
+    spin='-\|/'
+    i=0
+    while kill -0 $pid 2>/dev/null; do
+        i=$(( (i+1) %4 ))
+        printf "\r${CYAN}[%c] Working...${RESET}" "${spin:$i:1}"
+        sleep .1
+    done
+    printf "\r"
+}
+
+have_paru() {
+    command -v paru >/dev/null 2>&1
+}
+
+ensure_paru() {
+    if ! have_paru; then
+        echo -e "${YELLOW}→ Installing paru (AUR helper)...${RESET}"
+        sudo pacman -S --needed --noconfirm base-devel git
+        git clone https://aur.archlinux.org/paru.git /tmp/paru
+        cd /tmp/paru || exit 1
+        makepkg -si --noconfirm
+        cd /
+        rm -rf /tmp/paru
+        log "paru installed"
+    fi
+}
+
+install_pkg() {
+    for pkg in "$@"; do
+        log "Install requested: $pkg"
+
+        if pacman -Si "$pkg" &>/dev/null; then
+            sudo pacman -S --noconfirm "$pkg" &
+            spinner
+            wait
+            log "Installed via pacman: $pkg"
+
+        elif flatpak search "$pkg" | grep -qi "$pkg"; then
+            flatpak install -y flathub "$pkg" &
+            spinner
+            wait
+            log "Installed via flatpak: $pkg"
+
+        else
+            ensure_paru
+            if paru -Si "$pkg" &>/dev/null; then
+                paru -S --noconfirm "$pkg" &
+                spinner
+                wait
+                log "Installed via AUR: $pkg"
+            else
+                echo -e "${RED}✖ Package not found: $pkg${RESET}"
+                log "FAILED install: $pkg"
+            fi
+        fi
+    done
+}
+
+remove_pkg() {
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null; then
+            sudo pacman -Rns --noconfirm "$pkg"
+            log "Removed: $pkg"
+        elif have_paru && paru -Q "$pkg" &>/dev/null; then
+            paru -Rns --noconfirm "$pkg"
+            log "Removed AUR: $pkg"
+        elif flatpak list | grep -qi "$pkg"; then
+            flatpak uninstall -y "$pkg"
+            log "Removed flatpak: $pkg"
+        else
+            echo -e "${RED}✖ $pkg not installed${RESET}"
+        fi
+    done
+}
+
+doctor() {
+    header
+    sudo pacman -Dk
+    flatpak repair --dry-run
+    echo -e "${GREEN}Diagnostics complete.${RESET}"
+}
+
+clean_cache() {
+    sudo pacman -Sc --noconfirm
+    flatpak uninstall --unused -y
+    log "Cache cleaned"
+}
+
+autoremove() {
+    sudo pacman -Rns $(pacman -Qtdq) --noconfirm 2>/dev/null
+    log "Autoremove executed"
+}
+
+sync_mirrors() {
+    sudo pacman -S --noconfirm reflector
+    sudo reflector --latest 10 --sort rate --save /etc/pacman.d/mirrorlist
+    log "Mirrors synced"
+}
+
+interactive_install() {
+    read -rp "Enter package name: " pkg
+    install_pkg "$pkg"
+}
+
+if [[ "$1" == "--json" ]]; then
+    JSON_MODE=true
+    shift
+fi
+
+case "$1" in
+    install) shift; header; install_pkg "$@" ;;
+    remove) shift; header; remove_pkg "$@" ;;
+    update) header; sudo pacman -Syu; flatpak update -y; log "System updated" ;;
+    search) shift; header; pacman -Ss "$@"; flatpak search "$@" ;;
+    info) shift; header; pacman -Si "$1" 2>/dev/null || (have_paru && paru -Si "$1") || flatpak info "$1" ;;
+    list) header; pacman -Q; flatpak list ;;
+    doctor) doctor ;;
+    clean) clean_cache ;;
+    setup)
+        shift
+        case "$1" in
+            hyprland)
+                header
+                echo -e "${YELLOW}→ Installing Hyprland environment...${RESET}"
+                log "Hyprland setup started"
+
+                sudo pacman -S --noconfirm \
+                    hyprland \
+                    xdg-desktop-portal-hyprland \
+                    waybar \
+                    wofi \
+                    kitty \
+                    grim \
+                    slurp \
+                    wl-clipboard \
+                    polkit-kde-agent \
+                    pipewire wireplumber \
+                    network-manager-applet \
+                    thunar
+
+                echo -e "${GREEN}✔ Base Hyprland packages installed${RESET}"
+
+                echo -e "${YELLOW}→ Running Skyware Hyprland dotfiles setup(end-4)...${RESET}"
+                bash <(curl -s https://ii.clsty.link/get)
+
+                log "Hyprland setup completed"
+                echo -e "${GREEN}✔ Hyprland setup complete${RESET}"
+                ;;
+            *)
+                echo -e "${RED}Unknown setup target${RESET}"
+                ;;
+        esac
+        ;;
+    autoremove) autoremove ;;
+    sync) sync_mirrors ;;
+    interactive) interactive_install ;;
+    *) 
+        header
+        echo "Usage:"
+        echo "  ware install <pkg>"
+        echo "  ware remove <pkg>"
+        echo "  ware update"
+        echo "  ware search <pkg>"
+        echo "  ware info <pkg>"
+        echo "  ware list"
+        echo "  ware doctor"
+        echo "  ware clean"
+        echo "  ware autoremove"
+        echo "  ware sync"
+        echo "  ware interactive"
+        echo "  ware --json <command>"
+        ;;
+esac
+EOF
+
+sudo chmod +x /usr/local/bin/ware
+
 
 # -----------------------------
 # Done
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
