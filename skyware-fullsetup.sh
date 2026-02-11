@@ -569,7 +569,6 @@ case "$1" in
         echo "  ware interactive"
         echo "  ware --json <command>"
         echo "  ware setup hyprland"
-        echo "  ware setup hyprland-end4(may require manual intervention/is buggy)"
         ;;
 esac
 EOF
@@ -582,6 +581,7 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
