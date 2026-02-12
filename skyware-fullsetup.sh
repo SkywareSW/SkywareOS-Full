@@ -48,7 +48,7 @@ esac
 echo "Select your Desktop Environment / Compositor:"
 echo "1) KDE Plasma"
 echo "2) GNOME"
-read -rp "Enter choice (1/2/3): " de_choice
+read -rp "Enter choice (1/2): " de_choice
 
 case "$de_choice" in
     1)
@@ -193,7 +193,6 @@ eval "$(starship init zsh)"
 alias ll='ls -lah'
 EOF
 
-# Minimal Starship config (no warnings)
 cat > "$HOME/.config/starship.toml" << 'EOF'
 [character]
 success_symbol = "➜"
@@ -271,7 +270,7 @@ EOF
 echo "== Finalizing Installation =="
 
 # -----------------------------
-# OS release branding (KDE reads this)
+# OS release branding
 # -----------------------------
 sudo tee /etc/os-release > /dev/null << 'EOF'
 NAME="SkywareOS"
@@ -521,6 +520,7 @@ case "$1" in
             hyprland)
                 header
                 echo -e "${YELLOW}→ Installing Hyprland environment...${RESET}"
+                echo -e "${RED} Do not reboot when prompted to apply Skyware Finalization after hyprland setup is complete.${RESET}"
                 log "Hyprland setup started"
 
                 sudo pacman -S --noconfirm \
@@ -544,6 +544,46 @@ case "$1" in
 
                 log "Hyprland setup completed"
                 echo -e "${GREEN}✔ Hyprland setup complete${RESET}"
+                echo -e "${CYAN} Starting Finalization...${RESET}"
+                FASTFETCH_DIR="$HOME/.config/fastfetch"
+                mkdir -p "$FASTFETCH_DIR/logos"
+
+                cat > "$FASTFETCH_DIR/logos/skyware.txt" << 'EOF'
+                      @@@@@@@-         +@@@@@@.     
+                    %@@@@@@@@@@=      @@@@@@@@@@   
+                   @@@@     @@@@@      -     #@@@  
+                  :@@*        @@@@             @@@ 
+                  @@@          @@@@            @@@ 
+                  @@@           @@@@           %@@ 
+                  @@@            @@@@          @@@ 
+                  :@@@            @@@@:        @@@ 
+                   @@@@     =      @@@@@     %@@@  
+                    @@@@@@@@@@       @@@@@@@@@@@   
+                      @@@@@@+          %@@@@@@     
+                EOF
+
+                cat > "$FASTFETCH_DIR/config.jsonc" << 'EOF'
+                {
+                  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+                  "logo": {
+                    "type": "file",
+                    "source": "~/.config/fastfetch/logos/skyware.txt",
+                    "padding": { "top": 0, "left": 2 }
+                  },
+                  "modules": [
+                    "title",
+                    "separator",
+                    { "type": "os", "format": "SkywareOS", "use_pretty_name": false },
+                    "kernel",
+                    "uptime",
+                    "packages",
+                    "shell",
+                    "cpu",
+                    "gpu",
+                    "memory"
+                  ]
+                }
+                EOF
                 ;;
             *)
                 echo -e "${RED}Unknown setup target${RESET}"
@@ -581,6 +621,7 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
