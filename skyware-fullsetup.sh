@@ -546,18 +546,20 @@ case "$1" in
                 ;;
             lazyvim)
                 header
-                echo -e "${YELLOW}→ Installing LazyVim...${RESET}"
-                log "LazyVim setup started"
+                echo "Installing LazyVim..."
 
-                sudo pacman -S --noconfirm \
-                    nvim \
-                echo -e "${GREEN}✔ NeoVim installed${RESET}"
-                mv ~/.config/nvim{,.bak}
-                mv ~/.local/share/nvim{,.bak}
-                mv ~/.local/state/nvim{,.bak}
-                mv ~/.cache/nvim{,.bak}
+                sudo pacman -S --noconfirm neovim git
+
+                # Backup old nvim configs safely
+                mv ~/.config/nvim ~/.config/nvim.bak 2>/dev/null || true
+                mv ~/.local/share/nvim ~/.local/share/nvim.bak 2>/dev/null || true
+                mv ~/.local/state/nvim ~/.local/state/nvim.bak 2>/dev/null || true
+                mv ~/.cache/nvim ~/.cache/nvim.bak 2>/dev/null || true
+
                 git clone https://github.com/LazyVim/starter ~/.config/nvim
                 rm -rf ~/.config/nvim/.git
+
+                echo "LazyVim installed."
                 nvim
                 ;;
             *)
@@ -567,12 +569,11 @@ case "$1" in
         ;;
     script)
         header
-        echo -e "${YELLOW}→ Updating and running latest script...${RESET}"
-        echo -e "${RED}→ Skip DE and GPU Driver choice if you don't want them reinstalled/updated.${RESET}"
-        rm -rf SkywareOS-Full/
+        echo "Updating and running latest Skyware installer..."
+
+        rm -rf SkywareOS-Full 2>/dev/null || true
         git clone https://github.com/SkywareSW/SkywareOS-Full
-        cd SkywareOS-Full/
-        sed -i 's/\r$//' skyware-fullsetup.sh
+        cd SkywareOS-Full || exit 1
         chmod +x skyware-fullsetup.sh
         ./skyware-fullsetup.sh
         ;;
@@ -609,6 +610,7 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
