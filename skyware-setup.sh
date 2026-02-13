@@ -570,6 +570,8 @@ case "$1" in
                 git clone https://github.com/acaibowlz/niri-setup.git
                 cd niri-setup
                 chmod +x setup.sh
+                sudo mkdir /etc/niri/
+                sudo cp niri/* /etc/niri/
                 ./setup.sh
                 log "Niri setup completed"
                 echo -e "${GREEN}✔ Niri setup complete${RESET}"
@@ -624,6 +626,7 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
 
 
 
