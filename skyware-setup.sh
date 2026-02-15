@@ -1,13 +1,21 @@
 #!/bin/bash
 set -e
 
-echo "== SkywareOS full setup starting =="
+echo "== SkywareOS setup starting =="
 
 # -----------------------------
 # Pacman packages (Kitty included)
 # -----------------------------
 sudo pacman -Syu --noconfirm \
     flatpak cmatrix fastfetch btop zsh alacritty kitty curl git base-devel
+
+# -----------------------------
+# Firewall (finally)
+# -----------------------------
+sudo pacman -S --noconfirm ufw fail2ban
+sudo systemctl enable ufw
+sudo systemctl enable fail2ban
+sudo ufw enable
 
 # -----------------------------
 # GPU Driver Selection
@@ -17,7 +25,8 @@ echo "1) NVIDIA (Modern)"
 echo "2) NVIDIA"
 echo "3) AMD"
 echo "4) Intel"
-read -rp "Enter choice (1/2/3/4): " gpu_choice
+echo "5) VMware"
+read -rp "Enter choice (1/2/3/4/5): " gpu_choice
 
 case "$gpu_choice" in
     1)
@@ -36,6 +45,10 @@ case "$gpu_choice" in
     4)
         echo "Installing Intel drivers..."
         sudo pacman -S --noconfirm xf86-video-intel mesa
+        ;;
+    5)
+        echo "Installing VMware drivers..."
+        sudo pacman -S --noconfirm open-vm-tools mesa
         ;;
     *)
         echo "Invalid choice, skipping GPU drivers."
@@ -277,8 +290,8 @@ NAME="SkywareOS"
 PRETTY_NAME="SkywareOS"
 ID=skywareos
 ID_LIKE=arch
-VERSION="Release"
-VERSION_ID=Release
+VERSION="Testing"
+VERSION_ID=Testing
 HOME_URL="https://github.com/SkywareSW"
 LOGO=skywareos
 EOF
@@ -288,8 +301,8 @@ NAME="SkywareOS"
 PRETTY_NAME="SkywareOS"
 ID=skywareos
 ID_LIKE=arch
-VERSION="Release"
-VERSION_ID=Release
+VERSION="Testing"
+VERSION_ID=Testing
 LOGO=skywareos
 EOF
 
@@ -387,7 +400,6 @@ log() {
 
 header() {
     [ "$JSON_MODE" = true ] && return
-    echo -e "${BLUE}SkywareOS Package Manager (ware)${RESET}"
     echo ""
 }
 
@@ -470,10 +482,38 @@ remove_pkg() {
 
 doctor() {
     header
+
+    echo -e "${CYAN}→ Checking package database integrity...${RESET}"
     sudo pacman -Dk
+
+    echo ""
+    echo -e "${CYAN}→ Checking Flatpak integrity...${RESET}"
     flatpak repair --dry-run
+
+    echo ""
+    echo -e "${CYAN}→ Checking firewall status...${RESET}"
+
+    if command -v ufw >/dev/null 2>&1; then
+        if systemctl is-enabled ufw >/dev/null 2>&1; then
+            if systemctl is-active ufw >/dev/null 2>&1; then
+                echo -e "${GREEN}✔ Firewall (ufw) is installed and ACTIVE${RESET}"
+            else
+                echo -e "${YELLOW}⚠ Firewall (ufw) is installed but NOT running${RESET}"
+                echo -e "  → Start it with: sudo systemctl start ufw"
+            fi
+        else
+            echo -e "${YELLOW}⚠ Firewall (ufw) is installed but NOT enabled${RESET}"
+            echo -e "  → Enable it with: sudo systemctl enable ufw"
+        fi
+    else
+        echo -e "${RED}✖ Firewall (ufw) is NOT installed${RESET}"
+        echo -e "  → Install with: sudo pacman -S ufw"
+    fi
+
+    echo ""
     echo -e "${GREEN}Diagnostics complete.${RESET}"
 }
+
 
 clean_cache() {
     sudo pacman -Sc --noconfirm
@@ -485,6 +525,106 @@ autoremove() {
     sudo pacman -Rns $(pacman -Qtdq) --noconfirm 2>/dev/null
     log "Autoremove executed"
 }
+
+power_profile() {
+    profile="$1"
+
+    case "$profile" in
+        balanced)
+            echo -e "${CYAN}→ Setting Balanced mode...${RESET}"
+            sudo pacman -S --needed --noconfirm tlp >/dev/null 2>&1
+            sudo systemctl enable tlp --now
+            sudo cpupower frequency-set -g schedutil >/dev/null 2>&1
+            echo -e "${GREEN}✔ Balanced profile applied${RESET}"
+            ;;
+        performance)
+            echo -e "${CYAN}→ Setting Performance mode...${RESET}"
+            sudo pacman -S --needed --noconfirm cpupower >/dev/null 2>&1
+            sudo cpupower frequency-set -g performance
+            sudo systemctl stop tlp >/dev/null 2>&1
+            echo -e "${GREEN}✔ Performance profile applied${RESET}"
+            ;;
+        battery)
+            echo -e "${CYAN}→ Setting Battery Saver mode...${RESET}"
+            sudo pacman -S --needed --noconfirm tlp >/dev/null 2>&1
+            sudo systemctl enable tlp --now
+            sudo cpupower frequency-set -g powersave >/dev/null 2>&1
+            echo -e "${GREEN}✔ Battery profile applied${RESET}"
+            ;;
+        status)
+            echo -e "${CYAN}Power Profile Status:${RESET}"
+            cpupower frequency-info | grep "current policy"
+            ;;
+        *)
+            echo -e "${YELLOW}Usage: ware power <balanced|performance|battery>${RESET}"
+            ;;
+    esac
+}
+
+display_manager() {
+    action="$1"
+    dm="$2"
+
+    case "$action" in
+        list)
+            echo -e "${CYAN}Available Display Managers:${RESET}"
+            echo "  sddm"
+            echo "  gdm"
+            echo "  lightdm"
+            ;;
+        status)
+            current=$(systemctl list-unit-files | grep -E 'gdm|sddm|lightdm' | grep enabled)
+            echo -e "${CYAN}Current enabled DM:${RESET}"
+            echo "$current"
+            ;;
+        switch)
+            if [[ -z "$dm" ]]; then
+                echo -e "${RED}Specify a display manager${RESET}"
+                return
+            fi
+
+            echo -e "${YELLOW}→ Switching to $dm...${RESET}"
+
+            sudo systemctl disable gdm sddm lightdm 2>/dev/null
+            sudo systemctl enable "$dm"
+
+            echo -e "${GREEN}✔ $dm enabled. Reboot required.${RESET}"
+            ;;
+        *)
+            echo -e "${YELLOW}Usage: ware dm <list|switch|status>${RESET}"
+            ;;
+    esac
+}
+
+ware_status() {
+    header
+
+    echo -e "${CYAN}System Status${RESET}"
+    echo "────────────────────────"
+
+    kernel=$(uname -r)
+    uptime=$(uptime -p)
+    disk=$(df -h / | awk 'NR==2 {print $5}')
+    mem=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+    de="$XDG_CURRENT_DESKTOP"
+
+    updates=$(checkupdates 2>/dev/null | wc -l)
+
+    if command -v ufw >/dev/null 2>&1 && systemctl is-active ufw >/dev/null 2>&1; then
+        firewall="Active"
+    else
+        firewall="Inactive"
+    fi
+
+    echo -e "Kernel:        $kernel"
+    echo -e "Uptime:        $uptime"
+    echo -e "Updates:       $updates available"
+    echo -e "Firewall:      $firewall"
+    echo -e "Disk Usage:    $disk"
+    echo -e "Memory:        $mem"
+    echo -e "Desktop:       ${de:-Unknown}"
+}
+
 
 sync_mirrors() {
     sudo pacman -S --noconfirm reflector
@@ -510,6 +650,9 @@ case "$1" in
     info) shift; header; pacman -Si "$1" 2>/dev/null || (have_paru && paru -Si "$1") || flatpak info "$1" ;;
     list) header; pacman -Q; flatpak list ;;
     doctor) doctor ;;
+    power) shift; power_profile "$1" ;;
+    dm) shift; display_manager "$@" ;;
+    status) ware_status ;;
     clean) clean_cache ;;
     setup)
         shift
@@ -564,15 +707,17 @@ case "$1" in
                 echo -e "${YELLOW}→ Installing Niri environment...${RESET}"
                 log "niri setup started"
                 pacman -S gum --noconfirm
-                echo -e "${GREEN} gum dependency installed.${RESET}" 
+                echo -e "${GREEN} Gum installed.${RESET}"
                 echo -e "${YELLOW}→ Running Skyware Niri dotfiles setup...${RESET}"
                 echo -e "${RED} Installing alongside hyprland is NOT recommended.${RESET}"
                 git clone https://github.com/acaibowlz/niri-setup.git
                 cd niri-setup
                 chmod +x setup.sh
-                sudo mkdir /etc/niri/
-                sudo cp niri/* /etc/niri/
                 ./setup.sh
+                sudo mkdir -p /etc/niri
+                sudo cp niri/* /etc/niri/
+                cd niri-setup/
+                ./setup
                 log "Niri setup completed"
                 echo -e "${GREEN}✔ Niri setup complete${RESET}"
                 echo -e "${YELLOW} Reboot Recommended{RESET}"
@@ -599,10 +744,13 @@ case "$1" in
     *) 
         header
         echo "Usage:"
+        echo "  ware status"
         echo "  ware install <pkg>"
         echo "  ware remove <pkg>"
         echo "  ware update"
         echo "  ware upgrade"
+        echo "  ware power (balanced/performance/battery)"
+        echo "  ware dm (switch/list/status)"
         echo "  ware search <pkg>"
         echo "  ware info <pkg>"
         echo "  ware list"
@@ -612,8 +760,8 @@ case "$1" in
         echo "  ware sync"
         echo "  ware interactive"
         echo "  ware --json <command>"
-        echo "  ware setup <hyprland/lazyvim>"
-        echo "  ware setup niri<experimental>"
+        echo "  ware setup (hyprland/lazyvim)"
+        echo "  ware setup niri(experimental)"
         ;;
 esac
 EOF
@@ -626,6 +774,15 @@ sudo chmod +x /usr/local/bin/ware
 # -----------------------------
 echo "== SkywareOS full setup complete =="
 echo "Log out or reboot required"
+
+
+
+
+
+
+
+
+
 
 
 
